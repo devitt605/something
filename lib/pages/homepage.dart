@@ -29,6 +29,10 @@ class _HomePageState extends State<HomePage> {
   int totalBalance = 0;
   int totalIncome = 0;
   int totalExpense = 0;
+  //
+  bool curveGraph = true;
+  bool graphBorder = true;
+  //
   List<FlSpot> dataSet = [];
   DateTime today = DateTime.now();
   DateTime now = DateTime.now();
@@ -80,6 +84,26 @@ class _HomePageState extends State<HomePage> {
       });
       return items;
     }
+  }
+
+  List<TransactionModel> getSortedModel(List<TransactionModel> entireData) {
+    List<TransactionModel> tempdataSet = [];
+    // List tempdataSet2 = [];
+
+    for (TransactionModel item in entireData) {
+      if (item.date.month == today.month) {
+        tempdataSet.add(item);
+      }
+    }
+    // Sorting the list as per the date
+    //(after sorting) i need to find someway to add expenses of same dates together and remove other duplicates.
+    tempdataSet.sort((a, b) => b.date.day.compareTo(a.date.day));
+    date_count = 0;
+    for (var i = 0; i < tempdataSet.length; i++) {
+      if (i == 0) date_count = 0;
+      if (tempdataSet[i].date.day != tempdataSet[0].date.day) date_count++;
+    }
+    return tempdataSet;
   }
 
   List<FlSpot> getPlotPoints(List<TransactionModel> entireData) {
@@ -238,6 +262,7 @@ class _HomePageState extends State<HomePage> {
             //     ),
             //   );
             // }
+
             getTotalBalance(snapshot.data!);
             getPlotPoints(snapshot.data!);
             return ListView(
@@ -494,6 +519,39 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text('Curve'),
+                        Switch(
+                          value: curveGraph,
+                          onChanged: (bool newValue) {
+                            setState(() {
+                              curveGraph = newValue;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Text('Border'),
+                        Switch(
+                          value: graphBorder,
+                          onChanged: (bool newValue) {
+                            setState(() {
+                              graphBorder = newValue;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
                 //
                 // Text("$date_count"),
                 // dataSet.isEmpty || dataSet.length < 2
@@ -559,17 +617,20 @@ class _HomePageState extends State<HomePage> {
                         child: LineChart(
                           LineChartData(
                             borderData: FlBorderData(
-                              show: false,
+                              show: graphBorder, //shows box around the graph
                             ),
                             lineBarsData: [
                               LineChartBarData(
                                 // spots: getPlotPoints(snapshot.data!),
+
                                 spots: getPlotPoints(snapshot.data!),
-                                isCurved: false,
+                                isCurved: curveGraph, //curve the graph
+                                // preventCurveOverShooting: false,
                                 barWidth: 3.0,
                                 colors: [
                                   Static.PrimaryMaterialColor,
                                 ],
+
                                 showingIndicators: [200, 200, 90, 10],
                                 dotData: FlDotData(
                                   show: true,
@@ -577,6 +638,8 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ],
                           ),
+                          // swapAnimationDuration: Duration(milliseconds: 150),
+                          // swapAnimationCurve: Curves.linear,//animation
                         ),
                       ),
                 //testing
@@ -596,12 +659,12 @@ class _HomePageState extends State<HomePage> {
                 ListView.builder(
                   shrinkWrap: true,
                   physics: NeverScrollableScrollPhysics(),
-                  itemCount: snapshot.data!.length + 1,
+                  itemCount: getSortedModel(snapshot.data!).length + 1,
                   itemBuilder: (context, index) {
                     TransactionModel dataAtIndex;
                     try {
                       // dataAtIndex = snapshot.data![index];
-                      dataAtIndex = snapshot.data![index];
+                      dataAtIndex = getSortedModel(snapshot.data!)[index];
                     } catch (e) {
                       // deleteAt deletes that key and value,
                       // hence makign it null here., as we still build on the length.
